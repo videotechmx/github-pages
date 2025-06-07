@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Propiedades Satelite</title>
+    <!-- Incluye Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Fuente Inter para una estética moderna -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5; /* Un fondo gris claro para la página */
+        }
+        /* Estilos personalizados para la barra de navegación */
+        .navbar-link {
+            transition: all 0.2s ease-in-out;
+        }
+        .navbar-link:hover {
+            transform: translateY(-2px);
+            color: #bfdbfe; /* Azul claro al pasar el ratón para contraste */
+        }
+        /* Estilos para el botón de guardado */
+        .save-button {
+            transition: all 0.2s ease-in-out;
+        }
+        .save-button:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        /* Ocultar pestañas al inicio */
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        /* Cursor pointer para las imágenes cliqueables */
+        .property-image-clickable {
+            cursor: pointer;
+        }
+        /* Estilos para el modal de confirmación */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+        /* Estilos para la sección de administración */
+        #adminControls {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+        #adminControls.active {
+            max-height: 100px; /* Suficiente altura para mostrar los controles */
+            transition: max-height 0.3s ease-in;
+        }
+
+        /* Estilo para el fondo de la sección de propiedades */
+        #viewProperties {
+            background-image: url('edificio.png'); /* Imagen de edificio moderno */
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            position: relative; /* Necesario para el overlay */
+            min-height: 400px; /* Asegura que la imagen sea visible */
+            color: white; /* Color de texto predeterminado para el contenido sobre la imagen */
+            padding: 4rem 2rem; /* Espaciado interno */
+        }
+        /* Overlay para la imagen de fondo */
+        #viewProperties::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.4); /* Superposición oscura semi-transparente */
+            z-index: 1; /* Asegura que el overlay esté sobre la imagen pero debajo del contenido */
+            border-radius: 0.75rem; /* Mismo border-radius que la sección */
+        }
+        #viewProperties > h2, #viewProperties > div {
+            position: relative;
+            z-index: 2; /* Asegura que el contenido esté sobre el overlay */
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+
+    <!-- Barra de Navegación -->
+    <nav class="bg-blue-900 shadow-md p-4 sticky top-0 z-50">
+        <div class="container mx-auto flex flex-col md:flex-row justify-between items-center">
+            <a href="#" class="flex items-center text-2xl font-bold text-white mb-3 md:mb-0">
+                <img src="logo.jpg" alt="Logo Propiedades Satelite" class="h-10 w-auto max-w-full mr-2 object-contain rounded-full">
+                Propiedades Satelite
+            </a>
+            <div class="flex space-x-4 items-center">
+                <button class="navbar-link text-white hover:text-blue-200 font-medium px-3 py-2 rounded-md" onclick="showTab('viewProperties')">
+                    Página Principal
+                </button>
+                <button id="addPropertyNavLink" class="navbar-link text-white hover:text-blue-200 font-medium px-3 py-2 rounded-md hidden" onclick="showTab('addProperty')">
+                    Añadir Propiedad
+                </button>
+                <button class="navbar-link text-white hover:text-blue-200 font-medium px-3 py-2 rounded-md" onclick="showTab('visionMissionTab')">
+                    Visión y Propósitos
+                </button>
+                <button class="navbar-link text-white hover:text-blue-200 font-medium px-3 py-2 rounded-md" onclick="showTab('aboutUsTab')">
+                    Quiénes Somos
+                </button>
+                <!-- Botón para alternar la sección de administración -->
+                <button id="adminToggleButton" class="navbar-link text-white hover:text-blue-200 font-medium px-3 py-2 rounded-md" onclick="toggleAdminControls()">
+                    Admin
+                </button>
+            </div>
+        </div>
+        <!-- Sección de controles de administración (oculta por defecto) -->
+        <div id="adminControls" class="container mx-auto mt-4 md:mt-0 p-3 bg-blue-800 rounded-lg shadow-inner">
+            <div id="adminLoginSection" class="hidden flex flex-col md:flex-row items-center justify-center gap-4">
+                <input type="password" id="adminCodeInput" placeholder="Código de Administrador" class="px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-400 focus:border-blue-400 shadow-sm text-gray-800">
+                <button onclick="handleAdminLogin()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition-colors">
+                    Login Admin
+                </button>
+            </div>
+            <div id="adminStatusSection" class="hidden flex flex-col md:flex-row items-center justify-center gap-4 mt-2">
+                <span class="text-green-300 font-semibold">Administrador Logueado</span>
+                <button onclick="handleAdminLogout()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md shadow-md transition-colors">
+                    Cerrar Sesión Admin
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Contenido Principal -->
+    <main class="flex-grow container mx-auto p-6 mt-8">
+
+        <!-- Pestaña de Página Principal (antes Ver Propiedades) -->
+        <section id="viewProperties" class="tab-content active bg-white p-8 rounded-lg shadow-xl">
+            <h2 class="text-4xl font-extrabold text-white mb-8 text-center">Nuestras Propiedades Disponibles</h2>
+            <div id="propertiesList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Las propiedades se cargarán aquí dinámicamente -->
+            </div>
+        </section>
+
+        <!-- Pestaña de Añadir Propiedad -->
+        <section id="addProperty" class="tab-content bg-white p-8 rounded-lg shadow-xl">
+            <h2 class="text-4xl font-extrabold text-blue-900 mb-8 text-center">Añadir Nueva Propiedad</h2>
+            <form id="propertyForm" class="max-w-3xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                <!-- Campo Nombre de la Propiedad -->
+                <div class="md:col-span-2">
+                    <label for="propertyName" class="block text-lg font-medium text-gray-700 mb-2">Nombre de la Propiedad</label>
+                    <input type="text" id="propertyName" name="propertyName" placeholder="Ej: Hermosa casa familiar" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-blue-700 focus:border-blue-700 shadow-sm" required>
+                </div>
+
+                <!-- Campo Descripción -->
+                <div class="md:col-span-2">
+                    <label for="propertyDescription" class="block text-lg font-medium text-gray-700 mb-2">Descripción</label>
+                    <textarea id="propertyDescription" name="propertyDescription" rows="4" placeholder="Ej: Amplia casa con jardín y piscina en zona tranquila." class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-blue-700 focus:border-blue-700 shadow-sm" required></textarea>
+                </div>
+
+                <!-- Campo Dirección -->
+                <div class="md:col-span-2">
+                    <label for="propertyAddress" class="block text-lg font-medium text-gray-700 mb-2">Dirección</label>
+                    <input type="text" id="propertyAddress" name="propertyAddress" placeholder="Ej: Calle Falsa 123, Ciudad" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-blue-700 focus:border-blue-700 shadow-sm" required>
+                </div>
+
+                <!-- Campo Precio -->
+                <div>
+                    <label for="propertyPrice" class="block text-lg font-medium text-gray-700 mb-2">Precio ($)</label>
+                    <input type="number" id="propertyPrice" name="propertyPrice" placeholder="Ej: 250000" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-blue-700 focus:border-blue-700 shadow-sm" required>
+                </div>
+
+                <!-- Campo Habitaciones -->
+                <div>
+                    <label for="propertyBedrooms" class="block text-lg font-medium text-gray-700 mb-2">Habitaciones</label>
+                    <input type="number" id="propertyBedrooms" name="propertyBedrooms" placeholder="Ej: 3" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-blue-700 focus:border-blue-700 shadow-sm" min="1" required>
+                </div>
+
+                <!-- Campo Baños -->
+                <div>
+                    <label for="propertyBathrooms" class="block text-lg font-medium text-gray-700 mb-2">Baños</label>
+                    <input type="number" id="propertyBathrooms" name="propertyBathrooms" placeholder="Ej: 2" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-blue-700 focus:border-blue-700 shadow-sm" min="1" required>
+                </div>
+
+                <!-- Campo Área -->
+                <div>
+                    <label for="propertyArea" class="block text-lg font-medium text-gray-700 mb-2">Área (m²)</label>
+                    <input type="number" id="propertyArea" name="propertyArea" placeholder="Ej: 150" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-blue-700 focus:border-blue-700 shadow-sm" min="1" required>
+                </div>
+
+                <!-- Campo para subir múltiples imágenes locales -->
+                <div class="md:col-span-2">
+                    <label for="propertyImages" class="block text-lg font-medium text-gray-700 mb-2">Subir Imágenes (Máx. 5)</label>
+                    <input type="file" id="propertyImages" name="propertyImages" accept="image/*" multiple class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-blue-700 focus:border-blue-700 shadow-sm" onchange="previewImages(event)">
+                    <p class="text-sm text-gray-500 mt-1">Selecciona hasta 5 archivos de imagen de tu dispositivo. La primera será la principal.</p>
+                    <div id="imagesPreviewContainer" class="mt-4 flex flex-wrap gap-4">
+                        <!-- Las vistas previas de las imágenes se mostrarán aquí -->
+                    </div>
+                </div>
+
+                <!-- Botón de Guardar / Actualizar -->
+                <div class="md:col-span-2 flex justify-center mt-6">
+                    <button type="submit" id="savePropertyBtn" class="save-button bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-all duration-300 ease-in-out transform focus:outline-none focus:ring-4 focus:ring-blue-700 focus:ring-opacity-50">
+                        Guardar Propiedad
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <!-- Pestaña de Visión y Propósitos -->
+        <section id="visionMissionTab" class="tab-content bg-white p-8 rounded-lg shadow-xl">
+            <h2 class="text-4xl font-extrabold text-blue-900 mb-8 text-center">Nuestra Visión y Propósitos</h2>
+            <div class="text-gray-700 max-w-3xl mx-auto space-y-4 text-lg">
+                <p>En <strong>Propiedades Satelite</strong>, nuestra visión es ser la agencia inmobiliaria líder en la región, reconocida por nuestra <strong>integridad, excelencia en el servicio y un profundo compromiso</strong> con las necesidades de nuestros clientes.</p>
+                <p>Nos esforzamos por construir relaciones duraderas basadas en la confianza, ayudando a las personas a encontrar no solo una propiedad, sino el <strong>hogar ideal</strong> o la <strong>inversión perfecta</strong> que se alinee con sus sueños y metas.</p>
+                <p>Nuestros propósitos principales incluyen:</p>
+                <ul class="list-disc list-inside ml-4 space-y-2">
+                    <li>Ofrecer un <strong>asesoramiento experto y personalizado</strong> en cada etapa del proceso inmobiliario.</li>
+                    <li>Garantizar una <strong>experiencia de compra, venta o alquiler transparente y sin complicaciones</strong>.</li>
+                    <li>Mantener una <strong>cartera de propiedades diversa y de alta calidad</strong> que satisfaga las expectativas de nuestro mercado.</li>
+                    <li>Impulsar el <strong>desarrollo comunitario</strong> a través de prácticas inmobiliarias sostenibles y éticas.</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Pestaña de Quiénes Somos -->
+        <section id="aboutUsTab" class="tab-content bg-white p-8 rounded-lg shadow-xl">
+            <h2 class="text-4xl font-extrabold text-blue-900 mb-8 text-center">Quiénes Somos</h2>
+            <div class="text-gray-700 max-w-3xl mx-auto space-y-4 text-lg">
+                <p><strong>Propiedades Satelite</strong> es una agencia inmobiliaria con más de 10 años de experiencia en el mercado. Fundada con la misión de <strong>redefinir la experiencia de búsqueda y gestión de propiedades</strong>, nos hemos consolidado como un referente de confianza y profesionalismo.</p>
+                <p>Nuestro equipo está compuesto por <strong>agentes inmobiliarios altamente cualificados y apasionados</strong> que no solo conocen el mercado a la perfección, sino que también entienden el valor emocional y financiero de cada transacción.</p>
+                <p>Creemos firmemente en la <strong>atención al detalle, la comunicación constante y el apoyo integral</strong> a nuestros clientes. Desde la primera consulta hasta la firma final, estamos a tu lado para asegurar que cada paso sea fluido y exitoso.</p>
+                <p>Tu satisfacción es nuestra prioridad. En <strong>Propiedades Satelite</strong>, transformamos tus aspiraciones inmobiliarias en una feliz realidad.</p>
+            </div>
+            <!-- Nueva sección de información de contacto -->
+            <div class="mt-8 pt-4 border-t border-gray-200 text-center text-gray-600">
+                <h3 class="text-xl font-semibold text-blue-800 mb-2">Contáctanos</h3>
+                <p class="text-lg">Buolevares Naucalpan calle 11</p>
+                <p class="text-lg">Tel: <a href="tel:+524424223359" class="text-blue-600 hover:underline">4424223359</a></p>
+                <p class="text-lg">Tel: <a href="tel:+525511111111" class="text-blue-600 hover:underline">5511111111</a></p>
+            </div>
+        </section>
+
+        <!-- Pestaña de Formulario de Contacto (Informes) -->
+        <section id="contactFormTab" class="tab-content bg-white p-8 rounded-lg shadow-xl">
+            <h2 class="text-4xl font-extrabold text-blue-900 mb-8 text-center">Contáctanos para Informes</h2>
+            <form id="contactForm" class="max-w-xl mx-auto grid grid-cols-1 gap-6">
+
+                <div>
+                    <label for="contactName" class="block text-lg font-medium text-gray-700 mb-2">Tu Nombre</label>
+                    <input type="text" id="contactName" name="contactName" placeholder="Ej: Juan Pérez" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-blue-700 focus:border-blue-700 shadow-sm" required>
+                </div>
+
+                <div>
+                    <label for="contactEmail" class="block text-lg font-medium text-gray-700 mb-2">Tu Correo Electrónico</label>
+                    <input type="email" id="contactEmail" name="contactEmail" placeholder="Ej: tu.correo@ejemplo.com" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-blue-700 focus:border-blue-700 shadow-sm" required>
+                </div>
+
+                <div>
+                    <label for="contactPhone" class="block text-lg font-medium text-gray-700 mb-2">Número de Teléfono (opcional)</label>
+                    <input type="tel" id="contactPhone" name="contactPhone" placeholder="Ej: +52 55 1234 5678" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-blue-700 focus:border-blue-700 shadow-sm">
+                </div>
+
+                <div>
+                    <label for="contactMessage" class="block text-lg font-medium text-gray-700 mb-2">Tu Mensaje</label>
+                    <textarea id="contactMessage" name="contactMessage" rows="5" placeholder="Ej: Me gustaría más información sobre la propiedad de la Avenida Principal." class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-blue-700 focus:border-blue-700 shadow-sm" required></textarea>
+                </div>
+
+                <div class="flex justify-center mt-6">
+                    <button type="submit" class="save-button bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-all duration-300 ease-in-out transform focus:outline-none focus:ring-4 focus:ring-blue-700 focus:ring-opacity-50">
+                        Aceptar
+                    </button>
+                </div>
+            </form>
+        </section>
+
+    </main>
+
+    <script>
+        // Array para almacenar las propiedades (simulando una base de datos)
+        // La propiedad 'image' ahora es un array de URLs Base64.
+        let properties = [
+            {
+                name: "Casa Moderna en el Centro",
+                description: "Espaciosa casa con diseño moderno, cerca de parques y centros comerciales.",
+                address: "Avenida Principal 456, Ciudad",
+                price: 350000,
+                bedrooms: 4,
+                bathrooms: 3,
+                area: 220,
+                // Se cambió la primera imagen a 'Casa1.jpg'
+                image: ["Casa1.jpg", "https://placehold.co/600x400/1e40af/ffffff?text=Propiedad+1b", "https://placehold.co/600x400/1d4ed8/ffffff?text=Propiedad+1c"] // Array con varias imágenes
+            },
+            {
+                name: "Apartamento con Vistas Panorámicas",
+                description: "Lujoso apartamento con balcón, ideal para disfrutar de la ciudad.",
+                address: "Torre Celeste 101, Zona Alta",
+                price: 180000,
+                bedrooms: 2,
+                bathrooms: 2,
+                area: 90,
+                // Se cambió la primera imagen de la propiedad 2a a 'Departamento.jpg'
+                image: ["Departamento.jpg", "https://placehold.co/600x400/1e40af/ffffff?text=Propiedad+2b"] // Array con varias imágenes
+            }
+        ];
+
+        const propertiesListDiv = document.getElementById('propertiesList');
+        const propertyForm = document.getElementById('propertyForm');
+        const imagesPreviewContainer = document.getElementById('imagesPreviewContainer');
+        const savePropertyBtn = document.getElementById('savePropertyBtn'); // Referencia al botón de guardar/actualizar
+        const contactForm = document.getElementById('contactForm'); // Referencia al formulario de contacto
+        const MAX_IMAGES = 5; // Límite de imágenes por propiedad
+
+        // Elementos de la interfaz de administración
+        const adminToggleButton = document.getElementById('adminToggleButton');
+        const adminControls = document.getElementById('adminControls');
+        const adminCodeInput = document.getElementById('adminCodeInput');
+        const adminLoginSection = document.getElementById('adminLoginSection');
+        const adminStatusSection = document.getElementById('adminStatusSection');
+        const addPropertyNavLink = document.getElementById('addPropertyNavLink'); // Nuevo: Referencia al botón "Añadir Propiedad"
+
+        const ADMIN_CODE = '12345'; // Código de administrador
+        let isAdminLoggedIn = false; // Estado de login de administrador
+
+        // Variable para rastrear el índice de la propiedad que se está editando
+        let editingPropertyIndex = null;
+
+        // Función para mostrar la pestaña activa
+        function showTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.getElementById(tabId).classList.add('active');
+
+            // Resetear el formulario de propiedad y el modo de edición al cambiar de pestaña
+            if (tabId !== 'addProperty') {
+                resetForm();
+            }
+            // Resetear el formulario de contacto al cambiar de pestaña (si no es la pestaña de contacto)
+            if (tabId !== 'contactFormTab') {
+                contactForm.reset();
+            }
+        }
+
+        // --- Funciones de Administración ---
+        function toggleAdminControls() {
+            const isCurrentlyActive = adminControls.classList.contains('active');
+
+            // Toggle the visibility of the main controls container
+            adminControls.classList.toggle('active');
+
+            if (!isCurrentlyActive) { // Si se está volviendo activo (expandiendo)
+                if (isAdminLoggedIn) {
+                    adminLoginSection.classList.add('hidden'); // This is fine for admin logged in, as status is shown
+                    adminStatusSection.classList.remove('hidden');
+                } else {
+                    adminLoginSection.classList.remove('hidden'); // This is fine for not logged in, as login is shown
+                    adminStatusSection.classList.add('hidden');
+                }
+            } else { // Si se está volviendo inactivo (colapsando)
+                adminLoginSection.classList.add('hidden'); // Esto es correcto, oculta el login
+                adminStatusSection.classList.add('hidden'); // Esto es correcto, oculta el estado
+                // Cerrar sesión si el administrador estaba logueado y la sección se colapsa
+                if (isAdminLoggedIn) {
+                    handleAdminLogout(); // Esto también disparará renderProperties
+                }
+            }
+        }
+
+        function handleAdminLogin() {
+            if (adminCodeInput.value === ADMIN_CODE) {
+                isAdminLoggedIn = true;
+                adminLoginSection.classList.add('hidden');
+                adminStatusSection.classList.remove('hidden');
+                addPropertyNavLink.classList.remove('hidden'); // Mostrar el botón "Añadir Propiedad"
+                alert('¡Login de administrador exitoso!');
+                renderProperties(); // Volver a renderizar para mostrar/ocultar botones de admin
+            } else {
+                alert('Código de administrador incorrecto.');
+                adminCodeInput.value = '';
+            }
+        }
+
+        function handleAdminLogout() {
+            isAdminLoggedIn = false;
+            adminCodeInput.value = '';
+            // FIX: Asegura que la sección de login se oculte al cerrar sesión.
+            adminLoginSection.classList.add('hidden');
+            adminStatusSection.classList.add('hidden');
+            addPropertyNavLink.classList.add('hidden'); // Ocultar el botón "Añadir Propiedad"
+            // Asegurarse de que si estábamos en la pestaña "Añadir Propiedad", volvamos a la principal
+            if (document.getElementById('addProperty').classList.contains('active')) {
+                showTab('viewProperties');
+            }
+            alert('Sesión de administrador cerrada.');
+            renderProperties(); // Volver a renderizar para mostrar/ocultar botones de admin
+        }
+        // --- Fin Funciones de Administración ---
+
+
+        // Función para cambiar la imagen de la propiedad al hacer clic
+        function changePropertyImage(imgElement, propertyIndex) {
+            const propertyImagesArray = properties[propertyIndex].image;
+
+            // Si la propiedad no tiene imágenes o solo tiene una, no hacemos nada.
+            if (!propertyImagesArray || propertyImagesArray.length <= 1) {
+                return;
+            }
+
+            // Obtener el índice de la imagen actual desde el atributo data
+            let currentIndex = parseInt(imgElement.dataset.currentImageIndex || 0);
+
+            // Calcular el siguiente índice (circularmente)
+            const nextIndex = (currentIndex + 1) % propertyImagesArray.length;
+
+            // Actualizar la fuente de la imagen
+            imgElement.src = propertyImagesArray[nextIndex];
+
+            // Actualizar el atributo data con el nuevo índice
+            imgElement.dataset.currentImageIndex = nextIndex;
+        }
+
+        // Función para renderizar las propiedades en la lista
+        function renderProperties() {
+            propertiesListDiv.innerHTML = ''; // Limpiar la lista existente
+            properties.forEach((property, index) => { // Añadimos 'index' para pasarlo a la función
+                // Usamos la primera imagen del array como la principal
+                const mainImage = property.image && property.image.length > 0 ? property.image[0] : "https://placehold.co/600x400/cccccc/333333?text=Sin+Imagen";
+
+                // Determinar si la imagen debe ser cliqueable (si hay más de una imagen)
+                const isClickable = property.image && property.image.length > 1;
+                // Pasamos el índice de la propiedad en lugar del array completo para evitar errores de sintaxis
+                const clickHandler = isClickable ? `onclick="changePropertyImage(this, ${index})"` : '';
+                const clickableClass = isClickable ? 'property-image-clickable' : '';
+
+                // Botones de administrador (Editar/Eliminar)
+                let adminButtonsHtml = '';
+                if (isAdminLoggedIn) {
+                    adminButtonsHtml = `
+                        <button onclick="editProperty(${index})" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full text-sm shadow-md transition-colors">
+                            Editar
+                        </button>
+                        <button onclick="deleteProperty(${index})" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-full text-sm shadow-md transition-colors">
+                            Eliminar
+                        </button>
+                    `;
+                }
+
+                const propertyCard = `
+                    <div class="bg-white rounded-xl shadow-lg overflow-hidden transform transition-transform duration-300 hover:scale-105 hover:shadow-2xl flex flex-col">
+                        <img src="${mainImage}" alt="${property.name}" class="w-full h-48 object-cover ${clickableClass}"
+                             ${clickHandler} data-current-image-index="0">
+                        <div class="p-6 flex-grow flex flex-col">
+                            <h3 class="text-2xl font-semibold text-gray-900 mb-2">${property.name}</h3>
+                            <p class="text-gray-700 mb-4">${property.description}</p>
+                            <div class="flex items-center text-gray-600 mb-2">
+                                <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                <span>${property.address}</span>
+                            </div>
+                            <div class="flex flex-wrap items-center text-gray-600 text-sm mb-4">
+                                <span class="mr-4 flex items-center">
+                                    <svg class="w-4 h-4 mr-1 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m0 0l-7 7m7-7v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001 1h3v-3m0 0h-3m0 0a1 1 0 00-1-1v-3m0 0H9m11-6v-1a1 1 0 00-1-1H9a1 1 0 00-1 1v1m0 9v-1a1 1 0 00-1-1H9a1 1 0 00-1 1v1m0 9v-1a1 1 0 00-1-1H9a1 1 0 00-1 1v1m0 9v-1a1 1 0 00-1-1H9a1 1 0 00-1 1v1"></path></svg>
+                                    ${property.bedrooms} hab.
+                                </span>
+                                <span class="mr-4 flex items-center">
+                                    <svg class="w-4 h-4 mr-1 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"></path></svg>
+                                    ${property.bathrooms} baños
+                                </span>
+                                <span class="flex items-center">
+                                    <svg class="w-4 h-4 mr-1 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                                    ${property.area} m²
+                                </span>
+                            </div>
+                            <div class="text-3xl font-bold text-blue-700 text-right mb-4">
+                                $${property.price.toLocaleString()}
+                            </div>
+                            <div class="flex justify-between items-center mt-auto"> <!-- Added mt-auto here -->
+                                <button onclick="openContactFormForProperty('${property.name}')" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full text-sm shadow-md transition-colors">
+                                    Informes
+                                </button>
+                                <div class="flex space-x-2">
+                                    ${adminButtonsHtml}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                propertiesListDiv.innerHTML += propertyCard;
+            });
+        }
+
+        // Función para editar una propiedad
+        function editProperty(index) {
+            const property = properties[index];
+            editingPropertyIndex = index; // Guardar el índice de la propiedad que se está editando
+
+            // Rellenar el formulario con los datos de la propiedad
+            document.getElementById('propertyName').value = property.name;
+            document.getElementById('propertyDescription').value = property.description;
+            document.getElementById('propertyAddress').value = property.address;
+            document.getElementById('propertyPrice').value = property.price;
+            document.getElementById('propertyBedrooms').value = property.bedrooms;
+            document.getElementById('propertyBathrooms').value = property.bathrooms;
+            document.getElementById('propertyArea').value = property.area;
+
+            // Limpiar y mostrar las vistas previas de las imágenes actuales si existen
+            imagesPreviewContainer.innerHTML = '';
+            property.image.forEach(imgBase64 => {
+                const imgElement = document.createElement('img');
+                imgElement.src = imgBase64;
+                imgElement.classList.add('w-24', 'h-24', 'object-cover', 'rounded-md', 'border', 'border-gray-300', 'shadow-sm');
+                imagesPreviewContainer.appendChild(imgElement);
+            });
+
+            // Cambiar el texto y estilo del botón
+            savePropertyBtn.textContent = 'Actualizar Propiedad';
+            savePropertyBtn.classList.remove('bg-blue-700', 'hover:bg-blue-800');
+            savePropertyBtn.classList.add('bg-green-600', 'hover:bg-green-700');
+
+            // Cambiar a la pestaña de añadir propiedad
+            showTab('addProperty');
+        }
+
+        // Función para eliminar una propiedad
+        async function deleteProperty(index) {
+            const propertyName = properties[index].name;
+            const confirmed = await confirm(`¿Estás seguro de que quieres eliminar la propiedad "${propertyName}"?`);
+
+            if (confirmed) {
+                properties.splice(index, 1); // Eliminar la propiedad del array
+                renderProperties(); // Volver a renderizar la lista
+                alert('Propiedad eliminada exitosamente.');
+            }
+        }
+
+        // Función para previsualizar las imágenes seleccionadas
+        function previewImages(event) {
+            imagesPreviewContainer.innerHTML = ''; // Limpiar vistas previas existentes
+            const files = event.target.files;
+
+            if (files.length > MAX_IMAGES) {
+                alert(`Solo puedes subir un máximo de ${MAX_IMAGES} imágenes.`);
+                event.target.value = ''; // Limpiar la selección de archivos
+                return;
+            }
+
+            if (files.length > 0) {
+                Array.from(files).forEach(file => {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const imgElement = document.createElement('img');
+                        imgElement.src = e.target.result;
+                        imgElement.classList.add('w-24', 'h-24', 'object-cover', 'rounded-md', 'border', 'border-gray-300', 'shadow-sm');
+                        imagesPreviewContainer.appendChild(imgElement);
+                    };
+                    reader.readAsDataURL(file); // Lee el archivo como una URL de datos (Base64)
+                });
+            }
+        }
+
+        // Función para resetear el formulario y el estado de edición
+        function resetForm() {
+            propertyForm.reset();
+            imagesPreviewContainer.innerHTML = ''; // Limpiar vistas previas
+            document.getElementById('propertyImages').value = ''; // Limpiar input de archivo
+            editingPropertyIndex = null; // Resetear el índice de edición
+            savePropertyBtn.textContent = 'Guardar Propiedad';
+            savePropertyBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
+            savePropertyBtn.classList.add('bg-blue-700', 'hover:bg-blue-800');
+        }
+
+        // Manejar el envío del formulario de propiedad
+        propertyForm.addEventListener('submit', async function(event) {
+            event.preventDefault(); // Evitar el envío por defecto del formulario
+
+            const defaultPlaceholderImage = "https://placehold.co/600x400/cccccc/333333?text=Sin+Imagen";
+            let imagesBase64 = [];
+
+            const imageFiles = document.getElementById('propertyImages').files;
+
+            if (imageFiles.length > MAX_IMAGES) {
+                 alert(`Solo puedes subir un máximo de ${MAX_IMAGES} imágenes.`);
+                 return;
+            }
+
+            // Si hay archivos de imagen seleccionados, léelos de forma asíncronas
+            if (imageFiles.length > 0) {
+                const readPromises = Array.from(imageFiles).map(file => {
+                    return new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = (e) => resolve(e.target.result);
+                        reader.onerror = (e) => reject(e);
+                        reader.readAsDataURL(file); // Lee el archivo como Base64
+                    });
+                });
+
+                try {
+                    imagesBase64 = await Promise.all(readPromises);
+                } catch (error) {
+                    console.error("Error al leer uno o más archivos de imagen:", error);
+                    alert('Error al cargar una o más imágenes. Se usarán imágenes de marcador de posición si aplica.');
+                    imagesBase64 = [defaultPlaceholderImage]; // Fallback en caso de error
+                }
+            } else if (editingPropertyIndex !== null && properties[editingPropertyIndex].image.length > 0) {
+                // Si estamos editando y no se suben nuevas imágenes, conservar las existentes
+                imagesBase64 = properties[editingPropertyIndex].image;
+            } else {
+                imagesBase64 = [defaultPlaceholderImage]; // Si no se selecciona ninguna imagen, usar el placeholder
+            }
+
+            const propertyData = {
+                name: document.getElementById('propertyName').value,
+                description: document.getElementById('propertyDescription').value,
+                address: document.getElementById('propertyAddress').value,
+                price: parseFloat(document.getElementById('propertyPrice').value),
+                bedrooms: parseInt(document.getElementById('propertyBedrooms').value),
+                bathrooms: parseInt(document.getElementById('propertyBathrooms').value),
+                area: parseFloat(document.getElementById('propertyArea').value),
+                image: imagesBase64 // Almacena el array de URLs Base64
+            };
+
+            if (editingPropertyIndex !== null) {
+                // Modo edición: actualizar la propiedad existente
+                properties[editingPropertyIndex] = propertyData;
+                alert('¡Propiedad actualizada exitosamente!');
+            } else {
+                // Modo añadir: crear nueva propiedad
+                properties.push(propertyData);
+                alert('¡Propiedad guardada exitosamente!');
+            }
+
+            resetForm(); // Limpiar el formulario y resetear el estado de edición
+            renderProperties(); // Volver a renderizar la lista de propiedades
+            showTab('viewProperties'); // Cambiar a la pestaña de ver propiedades
+        });
+
+        // Función para abrir el formulario de contacto con la información de la propiedad
+        function openContactFormForProperty(propertyName) {
+            document.getElementById('contactMessage').value = `Me gustaría más información sobre la propiedad: ${propertyName}.`;
+            showTab('contactFormTab');
+        }
+
+        // Manejar el envío del formulario de contacto
+        contactForm.addEventListener('submit', function(event) { // Removido 'async' ya que no hay 'await confirm'
+            event.preventDefault();
+
+            const name = document.getElementById('contactName').value;
+            const email = document.getElementById('contactEmail').value;
+            const phone = document.getElementById('contactPhone').value;
+            const message = document.getElementById('contactMessage').value;
+
+            // Validar campos requeridos
+            if (!name || !email || !message) {
+                alert('Por favor, completa todos los campos obligatorios (Nombre, Correo Electrónico, Mensaje).');
+                return;
+            }
+
+            // Eliminar la confirmación previa para enviar automáticamente
+            const subject = encodeURIComponent(`Consulta desde Propiedades Satelite - ${name}`);
+            const body = encodeURIComponent(`
+Hola,
+
+Mi nombre es ${name}.
+Mi correo electrónico es: ${email}
+${phone ? `Mi número de teléfono es: ${phone}` : ''}
+
+Mensaje:
+${message}
+`);
+
+            window.location.href = `mailto:viedotech@live.com.mx?subject=${subject}&body=${body}`;
+            alert('Se ha intentado abrir tu cliente de correo. Por favor, revisa y haz clic en "Enviar" desde ahí.'); // Mensaje aclaratorio
+            contactForm.reset(); // Limpiar el formulario después de intentar abrir el cliente de correo
+        });
+
+
+        // Inicializar la página
+        document.addEventListener('DOMContentLoaded', () => {
+            renderProperties(); // Renderizar las propiedades iniciales
+            showTab('viewProperties'); // Mostrar la pestaña de propiedades al cargar
+
+            // Asegurarse de que la pestaña "Añadir Propiedad" esté oculta al inicio
+            addPropertyNavLink.classList.add('hidden');
+            adminLoginSection.classList.add('hidden');
+            adminStatusSection.classList.add('hidden');
+        });
+
+        // Custom Alert / Message Box function
+        function alert(message) {
+            const alertBox = document.createElement('div');
+            alertBox.classList.add('fixed', 'top-1/2', 'left-1/2', '-translate-x-1/2', '-translate-y-1/2', 'bg-white', 'p-6', 'rounded-lg', 'shadow-2xl', 'z-50', 'flex', 'flex-col', 'items-center', 'space-y-4');
+            alertBox.innerHTML = `
+                <p class="text-lg font-semibold text-gray-800 text-center">${message}</p>
+                <button class="bg-blue-700 hover:bg-blue-800 text-white font-bold py-2 px-6 rounded-lg focus:outline-none focus:ring-4 focus:ring-blue-700 focus:ring-opacity-50" onclick="this.parentNode.remove()">
+                    Aceptar
+                </button>
+            `;
+            document.body.appendChild(alertBox);
+            // Opcional: Cerrar automáticamente después de un tiempo
+            setTimeout(() => {
+                if (alertBox.parentNode) {
+                    alertBox.remove();
+                }
+            }, 3000);
+        }
+
+        // Custom Confirmation / Message Box function
+        function confirm(message) {
+            return new Promise((resolve) => {
+                const modalOverlay = document.createElement('div');
+                modalOverlay.classList.add('modal-overlay');
+
+                modalOverlay.innerHTML = `
+                    <div class="modal-content">
+                        <p class="text-lg font-semibold text-gray-800 mb-6">${message}</p>
+                        <div class="flex justify-center space-x-4">
+                            <button id="confirmYesBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg focus:outline-none focus:ring-4 focus:ring-blue-600 focus:ring-opacity-50">
+                                Sí
+                            </button>
+                            <button id="confirmNoBtn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-6 rounded-lg focus:outline-none focus:ring-4 focus:ring-gray-500 focus:ring-opacity-50">
+                                No
+                            </button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modalOverlay);
+
+                document.getElementById('confirmYesBtn').addEventListener('click', () => {
+                    modalOverlay.remove();
+                    resolve(true);
+                });
+
+                document.getElementById('confirmNoBtn').addEventListener('click', () => {
+                    modalOverlay.remove();
+                    resolve(false);
+                });
+            });
+        }
+    </script>
+</body>
+</html>
